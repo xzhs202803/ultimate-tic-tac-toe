@@ -32,7 +32,7 @@ export default {
 </script>
 
 <style scoped>
-.small-board { position:relative; background:#fff; border:2px solid #e6eef6; padding:8px; min-width:200px; aspect-ratio:1/1; display:flex; flex-direction:column; transition: box-shadow .15s ease, border-color .15s ease, transform .08s }
+.small-board { position:relative; background:#fff; border:2px solid #e6eef6; padding:8px; min-width:160px; aspect-ratio:1/1; display:flex; flex-direction:column; transition: box-shadow .15s ease, border-color .15s ease, transform .08s }
 .small-board:hover{transform:translateY(-2px)}
 .small-board.active { border-color: var(--accent); box-shadow: 0 6px 18px rgba(43,108,176,0.06) }
 .owner { position:absolute; inset:8px; display:flex; align-items:center; justify-content:center; font-size:64px; opacity:0.06; font-weight:800; color:var(--muted); pointer-events:none }

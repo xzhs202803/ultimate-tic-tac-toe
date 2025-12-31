@@ -36,41 +36,61 @@
       <div class="error" v-if="lastError">错误：{{ lastError }}</div>
 
       <section v-if="state" class="game-area">
-        <div class="meta-card">
-          <div class="meta-row meta-header">
-            <div class="room-id">房间：<strong>{{ state.roomId }}</strong></div>
-            <button class="copy-btn" @click="copyRoomId">复制房间号</button>
-          </div>
-
-          <div class="meta-row">
-            <div class="role">你的身份：<span class="player-label">{{ clientRoleLabel }}</span></div>
-            <div class="spectators">观战：<span class="muted">{{ state.spectatorCount ?? 0 }}</span></div>
-          </div>
-
-          <div class="meta-row players">
-            <div class="player-badge" :class="state.currentPlayer === 'X' ? 'active' : ''">
-              <div class="sym">X</div>
-              <div class="name">{{ state.players.X ?? '等待' }}</div>
+        <div class="top-row">
+          <div class="meta-card">
+            <div class="meta-row meta-header">
+              <div class="room-id">房间：<strong>{{ state.roomId }}</strong></div>
+              <button class="copy-btn" @click="copyRoomId">复制房间号</button>
             </div>
-            <div class="vs">/</div>
-            <div class="player-badge" :class="state.currentPlayer === 'O' ? 'active' : ''">
-              <div class="sym">O</div>
-              <div class="name">{{ state.players.O ?? '等待' }}</div>
+
+            <div class="meta-row">
+              <div class="role">你的身份：<span class="player-label">{{ clientRoleLabel }}</span></div>
+              <div class="spectators">观战：<span class="muted">{{ state.spectatorCount ?? 0 }}</span></div>
+            </div>
+
+            <div class="meta-row players">
+              <div class="player-badge" :class="state.currentPlayer === 'X' ? 'active' : ''">
+                <div class="sym">X</div>
+                <div class="name">{{ state.players.X ?? '等待' }}</div>
+              </div>
+              <div class="vs">/</div>
+              <div class="player-badge" :class="state.currentPlayer === 'O' ? 'active' : ''">
+                <div class="sym">O</div>
+                <div class="name">{{ state.players.O ?? '等待' }}</div>
+              </div>
+            </div>
+
+            <div class="meta-row status-row">
+              <div class="turn">回合：<span class="badge" :class="state.currentPlayer === 'X' ? 'turn-x' : 'turn-o'">{{ state.currentPlayer }}</span></div>
+              <div class="next-board">可落子小格：<strong>{{ state.nextAllowedBoard === -1 ? '任意' : state.nextAllowedBoard }}</strong></div>
+            </div>
+
+            <div class="meta-row helper">
+              <div class="helper-text" :class="{ canMove: isMyTurn }">
+                {{ helperText }}
+              </div>
+              <div style="margin-left:auto">
+                <button v-if="meSymbol" @click="switchToSpectator">切换为观战</button>
+                <button v-else @click="switchToPlayer" :disabled="!state.hasVacancy" :title="!state.hasVacancy ? '当前无空位或无法替换 AI' : '请求成为玩家'">请求加入为玩家</button>
+              </div>
+            </div>
+
+            <!-- incoming join requests (visible to players) -->
+            <div v-if="pendingJoinRequests.length && isPlaying" class="meta-row requests">
+              <div class="muted">加入请求：</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <div v-for="(r, idx) in pendingJoinRequests" :key="r.id" style="background:#fff8eb;border:1px solid #ffdca3;padding:6px 8px;border-radius:8px;display:flex;gap:8px;align-items:center">
+                  <div>{{ r.nick }}</div>
+                  <button @click="dismissRequest(idx)">忽略</button>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div class="meta-row status-row">
-            <div class="turn">回合：<span class="badge" :class="state.currentPlayer === 'X' ? 'turn-x' : 'turn-o'">{{ state.currentPlayer }}</span></div>
-            <div class="next-board">可落子小格：<strong>{{ state.nextAllowedBoard === -1 ? '任意' : state.nextAllowedBoard }}</strong></div>
-          </div>
-
-          <div class="meta-row helper">
-            <div class="helper-text" :class="{ canMove: isMyTurn }">
-              {{ helperText }}
-            </div>
-            <div style="margin-left:auto">
-              <button v-if="meSymbol" @click="switchToSpectator">切换为观战</button>
-              <button v-else @click="switchToPlayer" :disabled="!state.hasVacancy" :title="!state.hasVacancy ? '当前无空位或无法替换 AI' : '请求成为玩家'">请求加入为玩家</button>
+          <div class="log" aria-live="polite">
+            <div class="log-header"><h4>消息</h4><small class="muted">（仅保留最近 200 条）</small></div>
+            <div class="log-list" ref="logList">
+              <div v-for="(m, idx) in logs.slice(0,200)" :key="idx" class="log-item">{{ m }}</div>
             </div>
           </div>
         </div>
@@ -89,13 +109,6 @@
           :clientId="clientId"
           @move="sendMove"
         />
-
-        <div class="log" aria-live="polite">
-          <div class="log-header"><h4>消息</h4><small class="muted">（仅保留最近 200 条）</small></div>
-          <div class="log-list" ref="logList">
-            <div v-for="(m, idx) in logs.slice(0,200)" :key="idx" class="log-item">{{ m }}</div>
-          </div>
-        </div>
       </section>
 
       <section v-else class="hint">
@@ -149,6 +162,15 @@ export default {
       // attempt to set nick on server
       this.handleLogin(saved)
     }
+
+    // 在页面卸载/关闭时尝试主动注销昵称，保证昵称被及时释放
+    this._onBeforeUnload = () => {
+      try { if (this.ws && this.ws.readyState === WebSocket.OPEN) this.send({ type: 'logout' }) } catch (e) {}
+    }
+    window.addEventListener('beforeunload', this._onBeforeUnload)
+  },
+  beforeUnmount() {
+    try { window.removeEventListener('beforeunload', this._onBeforeUnload) } catch (e) {}
   },
   data() {
     return {
@@ -167,7 +189,9 @@ export default {
       lobbyRooms: [],
       clientId: null,
       meSymbol: null,
-      lastError: null
+      lastError: null,
+      // 存放收到的“加入玩家”请求（只对玩家可见）
+      pendingJoinRequests: []
     }
   },
   computed: {
@@ -301,6 +325,19 @@ export default {
           // ensure local meSymbol is cleared if becoming spectator
           this.meSymbol = msg.symbol || null
           this.log('已切换为：' + msg.role)
+        } else if (msg.type === 'join_request') {
+          // notify current players about spectator's request
+          const from = msg.from || { id: '', nick: '未知' }
+          // if current client is a player, record the request and log it
+          if (this.isPlaying) {
+            this.pendingJoinRequests.unshift(from)
+            // keep only 10 recent
+            if (this.pendingJoinRequests.length > 10) this.pendingJoinRequests.pop()
+            this.log(`玩家请求加入：${from.nick}`)
+          } else {
+            // otherwise, ignore (or log for records)
+            this.log(`收到加入请求（发送给玩家）：${from.nick}`)
+          }
         } else if (msg.type === 'left') {
           // server acknowledged we left the room
           this.log('已退出房间')
@@ -330,7 +367,11 @@ export default {
       this.roomId = ''
       this.state = null
       this.meSymbol = null
+      this.pendingJoinRequests = []
       this.log('正在退出房间...')
+    },
+    dismissRequest(idx) {
+      this.pendingJoinRequests.splice(idx, 1)
     },
     copyRoomId() {
       if (!this.roomId) return
@@ -360,10 +401,16 @@ export default {
 .app { max-width: 1000px; margin: 0 auto; padding: 16px; font-family: Arial, sans-serif }
 header h1 { margin: 0 0 8px }
 .controls { display:flex; gap:8px; align-items:center; margin-bottom:12px }
-.game-area { display:flex; gap:16px }
-.meta { min-width: 220px }
-.log { background:#fff;padding:12px;border-radius:8px;box-shadow:0 6px 18px rgba(12,22,48,0.06);min-width:300px;max-width:360px}
-.log-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  /* 布局：支持换行并居中，避免侧栏/日志强制撑开容器 */
+  .game-area { display:flex; gap:16px; flex-wrap:wrap; justify-content:center; align-items:flex-start }
+  /* top-row: meta + messages 同排 */
+  .top-row{display:flex;gap:16px;align-items:flex-start;justify-content:flex-start;width:100%;flex-wrap:wrap}
+  .top-row .meta-card{flex:0 1 220px}
+  .top-row .log{flex:0 1 320px;min-width:220px}
+  .meta { min-width:160px; flex: 0 1 220px }
+  .log { background:#fff;padding:12px;border-radius:8px;box-shadow:0 6px 18px rgba(12,22,48,0.06);min-width:240px;max-width:360px;flex:0 1 320px}
+  .log-header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  @media (max-width:900px){ .top-row{flex-direction:column;align-items:stretch} }
 .log-list{max-height:420px;overflow:auto;padding-top:8px}
 .log-item{padding:6px 8px;border-bottom:1px dashed #eef5fb;font-size:.95rem;color:#0b1220}
 @media (max-width:900px){.log{max-width:100%;min-width:auto;margin-top:12px}}
@@ -379,6 +426,8 @@ footer { margin-top:18px; color:#888 }
 
 .meta-card{background:#fff;padding:14px;border-radius:10px;box-shadow:0 8px 20px rgba(12,22,48,0.06);min-width:220px;display:flex;flex-direction:column;gap:8px}
 .meta-row{display:flex;align-items:center;gap:12px}
+.meta-row.requests{gap:8px;align-items:center}
+.meta-row.requests .muted{margin-right:6px}
 .meta-header{justify-content:space-between;align-items:center}
 .copy-btn{background:#eef6ff;border:1px solid #d0e8ff;padding:6px 8px;border-radius:6px;cursor:pointer}
 .player-badge{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;background:#f8fafc}

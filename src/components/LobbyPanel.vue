@@ -36,7 +36,7 @@ export default {
 .lobby-panel{background:#fff;padding:8px;border-radius:8px;box-shadow:0 6px 18px rgba(12,22,48,0.06)}
 .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .rooms{width:100%;border-collapse:collapse}
-.rooms th,.rooms td{padding:6px 8px;border-bottom:1px solid #eef5fb}
+.rooms th,.rooms td{padding:6px 8px;border-bottom:1px solid #eef5fb;text-align:center}
 .btn{padding:6px 8px;border-radius:6px;border:1px solid #dfeaf6;background:#fbfdff;cursor:pointer}
-.empty{color:#666;padding:8px}
+.empty{color:#666;padding:8px;text-align:center}
 </style>

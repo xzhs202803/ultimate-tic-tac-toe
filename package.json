@@ -11,7 +11,8 @@
     "dev": "vite --config ./vite.config.mjs",
     "build": "vite build",
     "preview": "vite preview",
-    "server": "node server/index.cjs"
+    "server": "node server/index.cjs",
+    "test": "mocha --exit --extension cjs"
   },
   "dependencies": {
     "vue": "^3.3.0",
@@ -20,6 +21,7 @@
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.3",
     "vite": "^5.0.0",
-    "ws": "^8.13.0"
+    "ws": "^8.13.0",
+    "mocha": "^10.2.0"
   }
 }

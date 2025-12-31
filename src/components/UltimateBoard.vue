@@ -41,6 +41,6 @@ export default {
 </script>
 
 <style scoped>
-.board-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap: 12px; width: min(720px, 90vw); margin: 0 auto }
+.board-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap: 12px; width: min(640px, 90vw); margin: 0 auto }
 .ultimate { display:flex; justify-content:center; width:100% }
 </style>

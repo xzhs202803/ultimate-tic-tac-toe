@@ -12,6 +12,7 @@ const server = http.createServer()
 const wss = new WebSocket.Server({ server })
 
 const rooms = {}
+const ROOM_TIMEOUT = 60 * 1000 // 1分钟无人后释放房间
 
 function makeRoomId() {
   return randomBytes(3).toString('hex')
@@ -70,10 +71,18 @@ wss.on('connection', (ws) => {
       if (msg.type === 'join') {
         let roomId = msg.roomId || makeRoomId()
         if (!rooms[roomId]) {
-          rooms[roomId] = { id: roomId, clients: {}, players: { X: null, O: null }, playerNames: {}, state: initState() }
+          rooms[roomId] = { 
+            id: roomId, 
+            clients: {}, 
+            players: { X: null, O: null }, 
+            playerNames: {}, 
+            state: initState(),
+            lastActivity: Date.now() 
+          }
           rooms[roomId].state.roomId = roomId
         }
         const room = rooms[roomId]
+        room.lastActivity = Date.now() // 更新活动时间
         room.clients[ws.id] = ws
         ws.roomId = roomId
         ws.role = msg.role || 'player'
@@ -107,6 +116,7 @@ wss.on('connection', (ws) => {
       else if (msg.type === 'reset') {
         const room = rooms[msg.roomId]
         if (!room) { ws.send(JSON.stringify({ type: 'error', message: '房间不存在' })); return }
+        room.lastActivity = Date.now() // 更新活动时间
         const isPlayer = (room.players.X === ws.id) || (room.players.O === ws.id)
         if (!isPlayer) { ws.send(JSON.stringify({ type: 'error', message: '只有玩家可以重置游戏' })); return }
         room.state = initState()
@@ -117,6 +127,7 @@ wss.on('connection', (ws) => {
       else if (msg.type === 'move') {
         const room = rooms[msg.roomId]
         if (!room) { ws.send(JSON.stringify({ type: 'error', message: '房间不存在' })); return }
+        room.lastActivity = Date.now() // 更新活动时间
         const s = room.state
         if (s.winner) { ws.send(JSON.stringify({ type: 'error', message: '游戏已结束' })); return }
 
@@ -175,8 +186,29 @@ wss.on('connection', (ws) => {
     if (room.players.O === ws.id) { room.players.O = null; if (room.playerNames) delete room.playerNames.O }
     // update state display map
     room.state.players = { X: room.playerNames && room.playerNames.X ? room.playerNames.X : null, O: room.playerNames && room.playerNames.O ? room.playerNames.O : null }
+    
+    // 检查房间是否为空
+    const clientCount = Object.keys(room.clients).length
+    if (clientCount === 0) {
+      room.lastActivity = Date.now() // 记录房间变为空的时间
+      console.log(`[Room ${room.id}] 房间已无人，将在1分钟后释放`)
+    }
+    
     broadcastRoom(room)
   })
 })
+
+// 定期检查并释放空房间
+setInterval(() => {
+  const now = Date.now()
+  for (const roomId in rooms) {
+    const room = rooms[roomId]
+    const clientCount = Object.keys(room.clients).length
+    if (clientCount === 0 && now - room.lastActivity > ROOM_TIMEOUT) {
+      console.log(`[Room ${roomId}] 释放空闲房间`)
+      delete rooms[roomId]
+    }
+  }
+}, 30 * 1000) // 每30秒检查一次
 
 server.listen(3000, () => console.log('WS server listening on :3000'))
