@@ -264,8 +264,10 @@ export default {
       this.loginError = null
       this.connect()
       const sendNick = () => this.send({ type: 'set_nick', nick })
-      if (this.ws && this.ws.readyState === WebSocket.OPEN) sendNick()
-      else {
+      // 总是通过 'open' 事件来发送昵称，避免竞态条件
+      if (this.ws.readyState === WebSocket.OPEN) {
+        sendNick()
+      } else {
         const once = () => { sendNick(); this.ws.removeEventListener('open', once); }
         this.ws.addEventListener('open', once)
       }
