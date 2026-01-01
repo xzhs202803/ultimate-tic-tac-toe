@@ -52,19 +52,26 @@
         </div>
       </section>
 
-      <!-- 大厅面板（仅在非游戏状态显示） -->
-      <aside v-if="!isPlaying && !state" class="lobby-section">
-        <lobby-panel :rooms="lobbyRooms" @refresh="requestLobby" @join="joinFromLobby" @spectate="spectateFromLobby" />
-      </aside>
       <div class="error" v-if="lastError">错误：{{ lastError }}</div>
 
-      <section v-if="state" class="game-area">
-        <div class="top-row">
-          <!-- 观战模式下显示大厅 -->
-          <aside v-if="!isPlaying" class="lobby-in-game">
-            <lobby-panel :rooms="lobbyRooms" @refresh="requestLobby" @join="joinFromLobby" @spectate="spectateFromLobby" />
-          </aside>
-          
+      <!-- 左侧侧栏：大厅和消息 -->
+      <aside v-if="role === 'spectator'" class="sidebar-column">
+        <lobby-panel v-if="!isPlaying" :rooms="lobbyRooms" @refresh="requestLobby" @join="joinFromLobby" @spectate="spectateFromLobby" />
+        <div v-if="state" class="log spectator-log">
+          <div class="log-header"><h4>消息</h4><small class="muted">（仅保留最近 200 条）</small></div>
+          <div class="log-list" ref="logList">
+            <div v-for="(m, idx) in logs.slice(0,200)" :key="idx" class="log-item">{{ m }}</div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- 大厅面板（玩家模式） -->
+      <aside v-else-if="!isPlaying" class="lobby-section">
+        <lobby-panel :rooms="lobbyRooms" @refresh="requestLobby" @join="joinFromLobby" @spectate="spectateFromLobby" />
+      </aside>
+
+      <section v-if="state" class="game-area" :class="{ 'spectator-mode': role === 'spectator' }">
+        <div v-if="role !== 'spectator'" class="top-row">
           <div class="meta-card">
             <div class="meta-row meta-header">
               <div class="room-badge">
@@ -146,14 +153,12 @@
           </div>
         </div>
 
-        <div class="board-wrapper">
-          <ultimate-board
-            :state="state"
-            :meSymbol="meSymbol"
-            :clientId="clientId"
-            @move="sendMove"
-          />
-        </div>
+        <ultimate-board
+          :state="state"
+          :meSymbol="meSymbol"
+          :clientId="clientId"
+          @move="sendMove"
+        />
       </section>
 
       <section v-else class="hint">
@@ -456,11 +461,10 @@ export default {
 <style scoped>
 .app { 
   font-family: inherit;
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 header {
@@ -471,8 +475,9 @@ main {
   flex: 1;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   gap: 12px;
-  padding-bottom: 20px;
+  min-height: 0;
 }
 
 footer {
@@ -758,20 +763,6 @@ button.danger:hover {
   background: rgba(59, 130, 246, 0.05);
 }
 
-aside {
-  flex-shrink: 0;
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.game-area { 
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-}
-
 .top-row {
   display: flex;
   gap: 12px;
@@ -780,31 +771,14 @@ aside {
   overflow: visible;
   flex-wrap: wrap;
   width: 100%;
-  max-width: 1200px;
-  flex-shrink: 0;
-}
-
-/* 观战模式下的大厅面板 */
-.lobby-in-game {
-  flex: 1;
-  min-width: 280px;
-  max-height: 500px;
-  overflow-y: auto;
-  background: #fff;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-  border: 1px solid #e2e8f0;
 }
 
 .top-row .meta-card {
   width: 100%;
   max-width: 380px;
   flex-shrink: 0;
-  background: #fff;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-  border: 1px solid #e2e8f0;
-  padding: 16px;
+  overflow-y: auto;
+  max-height: 85vh;
 }
 
 .top-row .log {
@@ -813,10 +787,92 @@ aside {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  max-height: 500px;
+  max-height: 85vh;
 }
 
-/* 美化对局信息卡片 */
+/* 观战模式日志样式 */
+.spectator-log {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #f8fafc 0%, #f0f4f8 100%);
+  border-radius: var(--radius-md);
+  border: 1px solid #e2e8f0;
+}
+
+.sidebar-column {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 300px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.sidebar-column .lobby-section {
+  flex-shrink: 0;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.sidebar-column .spectator-log {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+aside {
+  flex-shrink: 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.game-area { 
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.game-area.spectator-mode {
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-column {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 300px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.sidebar-column .lobby-section {
+  flex-shrink: 0;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.sidebar-column .spectator-log {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+aside {
+  flex-shrink: 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
 .meta-row {
   display: flex;
   align-items: center;
@@ -1130,15 +1186,6 @@ aside {
   border: 1px dashed #cbd5e1;
 }
 
-.board-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  max-width: 800px;
-  margin: 0 auto;
-}
-
 .winner-overlay {
   position: fixed;
   inset: 0;
@@ -1165,6 +1212,9 @@ aside {
   main {
     gap: 8px;
     padding: 0;
+    display: flex;
+    flex: 1;
+    min-height: 0;
   }
 
   .controls {
@@ -1225,17 +1275,18 @@ aside {
     max-height: 200px;
   }
 
-  .lobby-in-game {
-    max-height: 75vh;
+  .sidebar-column {
+    width: 350px;
+    max-height: 85vh;
   }
 
   .game-area {
-    gap: 12px;
+    flex: 1;
+    min-height: 0;
   }
 
   .top-row {
     flex-wrap: nowrap;
-    max-width: 1400px;
   }
 
   .top-row .meta-card {
@@ -1249,10 +1300,6 @@ aside {
     flex: 1;
     min-width: 300px;
     max-height: 85vh;
-  }
-
-  .board-wrapper {
-    max-width: 700px;
   }
 
   .log {
@@ -1359,22 +1406,19 @@ aside {
     max-height: 180px;
   }
 
-  .lobby-in-game {
-    max-height: 50vh;
-    min-width: 250px;
+  .sidebar-column {
+    width: 280px;
+    max-height: 70vh;
   }
 
   .game-area {
+    flex: 1;
     gap: 10px;
   }
 
   .top-row {
     flex-direction: column;
     max-height: 50vh;
-  }
-
-  .board-wrapper {
-    max-width: 600px;
   }
 
   .top-row .meta-card {
@@ -1490,45 +1534,36 @@ aside {
     max-height: 140px;
   }
 
-  .lobby-in-game {
-    max-height: 35vh;
-    min-width: 100%;
+  .sidebar-column {
+    width: 100%;
+    max-height: 300px;
   }
 
   .game-area {
+    flex: 1;
     gap: 8px;
   }
 
   .top-row {
     flex-direction: column;
     gap: 8px;
-    max-height: none;
-    flex-wrap: nowrap;
-  }
-
-  .board-wrapper {
-    max-width: 100%;
-  }
-
-  .top-row .lobby-in-game {
-    order: 1;
+    max-height: 45vh;
+    flex-wrap: wrap;
   }
 
   .top-row .meta-card {
     width: 100%;
     max-width: 100%;
-    max-height: none;
+    max-height: 22vh;
     padding: 10px;
     gap: 8px;
-    order: 2;
   }
 
   .top-row .log {
     width: 100%;
     max-width: 100%;
-    max-height: 300px;
+    max-height: 22vh;
     padding: 10px;
-    order: 3;
   }
 
   .meta-card {
