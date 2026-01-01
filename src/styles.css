@@ -46,6 +46,26 @@ button:disabled{opacity:0.5;cursor:not-allowed}
   outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,0.1)
 }
 .controls label{display:flex;align-items:center;gap:6px;font-size:0.95rem;color:#334155}
+.ai-option{
+  display:flex;align-items:center;gap:8px;padding:10px 12px;background:linear-gradient(135deg,#fef3c7 0%,#fef08a 100%);
+  border:2px solid #fcd34d;border-radius:var(--radius-md);cursor:pointer;transition:all 0.2s;
+  font-weight:500;color:#92400e
+}
+.ai-option:hover:not(:has(input:disabled)){
+  background:linear-gradient(135deg,#fde68a 0%,#fcd34d 100%);border-color:#f59e0b;box-shadow:0 4px 12px rgba(245,158,11,0.2)
+}
+.ai-option input[type="checkbox"]{
+  cursor:pointer;width:18px;height:18px;accent-color:#f59e0b
+}
+.ai-option input[type="checkbox"]:disabled{
+  cursor:not-allowed;opacity:0.5
+}
+.ai-option-content{display:flex;align-items:center;gap:6px}
+.ai-option-icon{font-size:1.1rem;display:inline-block;animation:bounce-ai 2s ease-in-out infinite}
+@keyframes bounce-ai{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-2px)}
+}
 .controls .muted{color:var(--muted);font-size:.9rem;margin-left:auto}
 .error{color:#dc2626;margin-top:8px;padding:10px 12px;background:#fee2e2;border-radius:var(--radius-md);font-size:0.95rem}
 .badge{
@@ -56,7 +76,18 @@ button:disabled{opacity:0.5;cursor:not-allowed}
 .turn-o{color:var(--o-color)}
 footer{margin-top:24px;padding-top:16px;border-top:1px solid rgba(51,65,85,0.1);color:var(--muted);font-size:0.9rem;text-align:center}
 @media (max-width:768px){
-  .controls{flex-direction:column;align-items:stretch}
-  .controls input,.controls select,.controls button{width:100%}
-  .controls .muted{margin-left:0;margin-top:8px}
+  .app{padding:12px;max-width:100%}
+  header{padding:12px 12px 8px;margin:-12px -12px 12px}
+  header h1{font-size:1.4rem}
+  .controls{flex-direction:column;align-items:stretch;padding:12px;gap:8px;margin-bottom:12px}
+  .controls input,.controls select,.controls button{width:100%;font-size:0.9rem;padding:8px 10px}
+  .controls .muted{margin-left:0;margin-top:6px}
+  .ai-option{width:100%;justify-content:space-between;padding:10px;font-size:0.9rem}
+  .ai-option-icon{animation:none}
+}
+@media (max-width:480px) {
+  .controls input,.controls select,.controls button{padding:8px;font-size:0.85rem}
+  .ai-option{padding:8px;gap:6px;font-size:0.85rem}
+  .ai-option-icon{font-size:1rem}
+  .ai-option-text{font-size:0.85rem}
 }

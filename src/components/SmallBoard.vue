@@ -64,8 +64,15 @@ export default {
 .cell.x{color:var(--x-color);text-shadow:0 2px 4px rgba(239,68,68,0.1)}
 .cell.o{color:var(--o-color);text-shadow:0 2px 4px rgba(59,130,246,0.1)}
 @media (max-width:600px){
-  .small-board{min-width:120px;padding:8px}
-  .cells{gap:6px}
-  .cell{font-size:clamp(16px,3vw,24px)}
+  .small-board{min-width:100px;padding:6px}
+  .cells{gap:5px}
+  .cell{font-size:clamp(14px,3vw,20px)}
+  .owner{font-size:48px}
+}
+@media (max-width:480px){
+  .small-board{min-width:85px;padding:5px}
+  .cells{gap:4px}
+  .cell{font-size:clamp(12px,2.5vw,16px)}
+  .owner{font-size:40px}
 }
 </style>

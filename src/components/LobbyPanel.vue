@@ -18,7 +18,17 @@
         <tbody>
           <tr v-for="r in rooms" :key="r.roomId" class="room-row">
             <td class="room-id-cell"><code>{{ r.roomId }}</code></td>
-            <td class="players-cell">{{ r.players.X || '等待' }} / {{ r.players.O || '等待' }}</td>
+            <td class="players-cell">
+              <span class="player-info">
+                {{ r.players.X || '等待' }}
+                <span v-if="r.players.X && r.players.X.includes('(AI)')" class="ai-badge-small">🤖AI</span>
+              </span>
+              /
+              <span class="player-info">
+                {{ r.players.O || '等待' }}
+                <span v-if="r.players.O && r.players.O.includes('(AI)')" class="ai-badge-small">🤖AI</span>
+              </span>
+            </td>
             <td class="spectators-cell">{{ r.spectatorCount }}</td>
             <td class="status-cell">
               <span class="badge" :class="r.hasVacancy ? 'badge-open' : 'badge-full'">
@@ -65,6 +75,19 @@ export default {
 .room-id-cell{font-family:monospace;font-weight:600;color:#1e293b}
 .room-id-cell code{background:#f1f5f9;padding:2px 6px;border-radius:var(--radius-sm);font-size:0.9rem}
 .players-cell,.spectators-cell{text-align:center}
+.player-info{display:inline-flex;align-items:center;gap:4px}
+.ai-badge-small{
+  display:inline-flex;align-items:center;gap:1px;padding:1px 4px;background:linear-gradient(135deg,#fbbf24 0%,#f59e0b 100%);
+  border-radius:999px;font-size:0.7rem;font-weight:600;color:#fff;white-space:nowrap;
+  box-shadow:0 1px 4px rgba(245,158,11,0.25)
+}
+@media (max-width:768px) {
+  .ai-badge-small{font-size:0.65rem;padding:1px 3px;gap:0.5px}
+}
+@media (max-width:480px) {
+  .player-info{gap:2px}
+  .ai-badge-small{font-size:0.6rem;padding:0.5px 2px}
+}
 .status-cell{text-align:center}
 .actions-cell{display:flex;gap:6px;justify-content:flex-end}
 .btn{padding:7px 12px;border-radius:var(--radius-md);border:1px solid #cbd5e1;background:#fff;color:#1e293b;cursor:pointer;font-weight:500;font-size:0.9rem;transition:all 0.2s}
@@ -82,10 +105,21 @@ export default {
 .empty small{display:block;color:var(--muted);font-size:0.9rem}
 @media (max-width:768px){
   .lobby-panel{padding:12px}
-  .header{margin-bottom:12px}
+  .header{margin-bottom:12px;flex-direction:column;align-items:stretch;gap:8px}
+  .btn-refresh{width:100%;padding:8px 10px}
   .rooms{font-size:0.85rem}
   .rooms th,.rooms td{padding:8px 6px}
+  .room-id-cell code{font-size:0.85rem}
   .actions-cell{flex-direction:column;gap:4px}
   .btn-sm{width:100%;min-width:unset}
+}
+@media (max-width:480px){
+  .lobby-panel{padding:10px;border-radius:8px}
+  .header h3{font-size:1rem}
+  .rooms{font-size:0.8rem}
+  .rooms th,.rooms td{padding:6px 4px}
+  .room-id-cell code{padding:2px 4px;font-size:0.75rem}
+  .btn{padding:5px 8px;font-size:0.8rem}
+  .btn-sm{padding:5px 8px}
 }
 </style>

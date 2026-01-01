@@ -176,7 +176,7 @@ function addAIToRoom(room, humanSymbol) {
   const aiSymbol = humanSymbol === 'X' ? 'O' : 'X'
   if (room.players[aiSymbol]) return false
   room.players[aiSymbol] = 'AI'
-  room.ai = { symbol: aiSymbol, name: '机器人' }
+  room.ai = { symbol: aiSymbol, name: '机器人(AI)' }
   if (!room.playerNames) room.playerNames = {}
   room.playerNames[aiSymbol] = room.ai.name
   return true
@@ -584,8 +584,26 @@ wss.on('connection', (ws) => {
     const room = rooms[ws.roomId]
     if (!room) return
     delete room.clients[ws.id]
+    
+    // 检查离开的玩家是否是创建AI的玩家
+    const wasCreatingPlayerForAI = (room.players.X === ws.id || room.players.O === ws.id) && room.ai
+    
     if (room.players.X === ws.id) { room.players.X = null; if (room.playerNames) delete room.playerNames.X }
     if (room.players.O === ws.id) { room.players.O = null; if (room.playerNames) delete room.playerNames.O }
+    
+    // 如果有AI且玩家离开，清除AI
+    if (wasCreatingPlayerForAI && room.ai) {
+      const aiSymbol = room.ai.symbol
+      room.players[aiSymbol] = null
+      if (room.playerNames) delete room.playerNames[aiSymbol]
+      if (room._aiTimer) {
+        clearTimeout(room._aiTimer)
+        room._aiTimer = null
+      }
+      delete room.ai
+      logInfo('AI removed when player disconnected', { roomId: ws.roomId, playerId: ws.id })
+    }
+    
     // update state display map
     room.state.players = { X: room.playerNames && room.playerNames.X ? room.playerNames.X : null, O: room.playerNames && room.playerNames.O ? room.playerNames.O : null }
     

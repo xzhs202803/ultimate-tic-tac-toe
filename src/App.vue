@@ -16,8 +16,12 @@
             <option value="player">玩家</option>
             <option value="spectator">观战</option>
           </select>
-          <label style="display:flex;align-items:center;gap:8px">
-            <input type="checkbox" v-model="playWithAi" :disabled="role !== 'player'" /> 对战机器人
+          <label class="ai-option">
+            <input type="checkbox" v-model="playWithAi" :disabled="role !== 'player'" />
+            <span class="ai-option-content">
+              <span class="ai-option-icon">🤖</span>
+              <span class="ai-option-text">对战机器人</span>
+            </span>
           </label>
           <button class="primary" @click="join">加入/创建房间</button>
           <button @click="resetGame" :disabled="!roomId">重置游戏</button>
@@ -51,12 +55,24 @@
             <div class="meta-row players">
               <div class="player-badge" :class="state.currentPlayer === 'X' ? 'active' : ''">
                 <div class="sym">X</div>
-                <div class="name">{{ state.players.X ?? '等待' }}</div>
+                <div class="name">
+                  <span>{{ state.players.X ?? '等待' }}</span>
+                  <span v-if="state.players.X && state.players.X.includes('(AI)')" class="ai-tag">
+                    <span class="ai-icon">🤖</span>
+                    <span class="ai-label">AI</span>
+                  </span>
+                </div>
               </div>
               <div class="vs">/</div>
               <div class="player-badge" :class="state.currentPlayer === 'O' ? 'active' : ''">
                 <div class="sym">O</div>
-                <div class="name">{{ state.players.O ?? '等待' }}</div>
+                <div class="name">
+                  <span>{{ state.players.O ?? '等待' }}</span>
+                  <span v-if="state.players.O && state.players.O.includes('(AI)')" class="ai-tag">
+                    <span class="ai-icon">🤖</span>
+                    <span class="ai-label">AI</span>
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -419,6 +435,29 @@ export default {
   .top-row{justify-content:center}
   .top-row .meta-card,.top-row .log{max-width:100%}
 }
+@media (max-width:768px){
+  .game-area{gap:12px;flex-direction:column;align-items:stretch}
+  .top-row{flex-direction:column;gap:12px}
+  .top-row .meta-card{min-width:auto;max-width:100%;padding:12px}
+  .top-row .log{min-width:auto;max-width:100%;padding:12px;max-height:300px}
+  .log-list{max-height:250px}
+  .meta-row{padding:6px 0;font-size:0.9rem}
+  .player-badge{min-width:80px;padding:8px 10px}
+  .player-badge .sym{font-size:1.2rem}
+  .player-badge .name{font-size:0.8rem;max-width:70px}
+  .winner-card{padding:24px 20px}
+  .winner-symbol{font-size:60px}
+}
+@media (max-width:480px){
+  .top-row .meta-card{padding:10px}
+  .top-row .log{padding:10px}
+  .meta-row{gap:8px;padding:4px 0}
+  .players{gap:8px;padding:8px 0}
+  .player-badge{min-width:70px;padding:6px 8px;font-size:0.85rem}
+  .player-badge .sym{font-size:1rem}
+  .log-header{margin-bottom:8px;padding-bottom:8px;gap:6px}
+  .log-item{padding:6px 8px;font-size:0.85rem}
+}
 .log{background:#fff;padding:16px;border-radius:var(--radius-lg);box-shadow:var(--shadow-md);display:flex;flex-direction:column}
 .log-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #e2e8f0}
 .log-header h4{margin:0;color:#1e293b;font-size:1rem;font-weight:600}
@@ -466,7 +505,34 @@ export default {
 }
 .player-badge.active{background:linear-gradient(135deg,#eef2ff 0%,#f0f4f8 100%);border-color:var(--accent);box-shadow:0 0 12px rgba(37,99,235,0.1)}
 .player-badge .sym{font-size:1.5rem;font-weight:900;color:#1e293b}
-.player-badge .name{font-size:0.85rem;color:var(--muted);text-align:center;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.player-badge .name{font-size:0.85rem;color:var(--muted);text-align:center;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;justify-content:center;gap:4px}
+.ai-tag{
+  display:inline-flex;align-items:center;gap:2px;padding:2px 6px;background:linear-gradient(135deg,#fbbf24 0%,#f59e0b 100%);
+  border-radius:999px;font-size:0.7rem;font-weight:600;color:#fff;white-space:nowrap;
+  box-shadow:0 2px 6px rgba(245,158,11,0.25);animation:pulse-ai 2s ease-in-out infinite
+}
+.ai-icon{display:inline-flex;font-size:0.8rem;animation:float-ai 3s ease-in-out infinite}
+.ai-label{font-size:0.65rem;letter-spacing:0.5px}
+@keyframes pulse-ai{
+  0%,100%{box-shadow:0 2px 6px rgba(245,158,11,0.25)}
+  50%{box-shadow:0 2px 12px rgba(245,158,11,0.4)}
+}
+@keyframes float-ai{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-2px)}
+}
+@media (max-width:768px) {
+  .ai-tag{animation:none;padding:2px 5px;font-size:0.65rem}
+  .ai-icon{animation:none;font-size:0.75rem}
+  .ai-label{font-size:0.6rem}
+  .player-badge .name{font-size:0.8rem;max-width:80px;gap:3px}
+}
+@media (max-width:480px) {
+  .ai-tag{padding:1px 4px;font-size:0.6rem}
+  .ai-icon{font-size:0.7rem}
+  .ai-label{font-size:0.55rem;letter-spacing:0}
+  .player-badge .name{font-size:0.75rem;max-width:70px}
+}
 .vs{color:#cbd5e1;font-weight:700;font-size:1.2rem}
 .turn{font-weight:600;color:#1e293b}
 .next-board{color:var(--muted)}

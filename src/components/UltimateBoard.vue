@@ -43,4 +43,10 @@ export default {
 <style scoped>
 .board-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap: 12px; width: min(640px, 90vw); margin: 0 auto }
 .ultimate { display:flex; justify-content:center; width:100% }
-</style>
+@media (max-width:768px) {
+  .board-grid { width: min(320px, 95vw); gap: 10px }
+  .ultimate { padding: 0 4px }
+}
+@media (max-width:480px) {
+  .board-grid { width: min(280px, 98vw); gap: 8px }
+}</style>

@@ -67,7 +67,17 @@ export default {
 .qr img{width:200px;height:200px;border-radius:var(--radius-md);box-shadow:var(--shadow-sm)}
 @media (max-width:600px){
   .share-panel{padding:10px}
-  .share-input{min-width:150px;font-size:0.85rem;padding:8px 10px}
-  .qr img{width:160px;height:160px}
+  .share-input{min-width:120px;font-size:0.8rem;padding:7px 8px}
+  .qr img{width:140px;height:140px}
+}
+@media (max-width:480px){
+  .share-panel{padding:8px;gap:8px}
+  .share-header h4{font-size:0.9rem}
+  .share-controls{gap:6px}
+  .share-input{min-width:100px;font-size:0.75rem;padding:6px 8px}
+  .btn{padding:6px 8px;font-size:0.8rem}
+  .btn-icon{padding:6px}
+  .qr img{width:120px;height:120px}
+  .copied{font-size:0.8rem;padding:6px 8px}
 }
 </style>
