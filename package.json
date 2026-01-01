@@ -8,10 +8,12 @@
   "private": true,
   "scripts": {
     "start": "node scripts/start.cjs",
+    "start:prod": "node start-prod.js",
     "dev": "vite --config ./vite.config.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "server": "node server/index.cjs",
+    "deploy": "node deploy.js",
     "test": "mocha --exit --extension cjs"
   },
   "dependencies": {
