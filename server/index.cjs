@@ -2,13 +2,96 @@
  - 房间管理：roomId -> { clients: Set, players: {X: id, O: id}, spectators: Set, state }
  - 简单消息协议（JSON）：{ type, ... }
  - 支持 join（创建/加入），move，broadcast state
+ - 生产模式：集成静态文件服务（dist/）
 */
 
 const http = require('http')
 const WebSocket = require('ws')
 const { randomBytes } = require('crypto')
+const fs = require('fs')
+const path = require('path')
 
-const server = http.createServer()
+// 静态文件服务（生产模式）
+const DIST_DIR = path.join(__dirname, '..', 'dist')
+const MIME_TYPES = {
+  '.html': 'text/html',
+  '.js': 'application/javascript',
+  '.mjs': 'application/javascript',
+  '.css': 'text/css',
+  '.json': 'application/json',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.eot': 'application/vnd.ms-fontobject'
+}
+
+function serveStaticFile(req, res) {
+  // 解析请求路径
+  let filePath = req.url === '/' ? '/index.html' : req.url
+  // 移除查询参数
+  filePath = filePath.split('?')[0]
+  const fullPath = path.join(DIST_DIR, filePath)
+  
+  // 防止目录遍历攻击
+  if (!fullPath.startsWith(DIST_DIR)) {
+    res.writeHead(403, { 'Content-Type': 'text/plain' })
+    res.end('403 Forbidden')
+    return
+  }
+  
+  // 检查文件是否存在
+  fs.stat(fullPath, (err, stats) => {
+    if (err || !stats.isFile()) {
+      // SPA fallback: 文件不存在则返回 index.html（前端路由）
+      const indexPath = path.join(DIST_DIR, 'index.html')
+      fs.readFile(indexPath, (err, content) => {
+        if (err) {
+          res.writeHead(404, { 'Content-Type': 'text/plain' })
+          res.end('404 Not Found')
+          return
+        }
+        res.writeHead(200, { 'Content-Type': 'text/html' })
+        res.end(content)
+      })
+      return
+    }
+    
+    // 读取并返回文件
+    fs.readFile(fullPath, (err, content) => {
+      if (err) {
+        res.writeHead(500, { 'Content-Type': 'text/plain' })
+        res.end('500 Internal Server Error')
+        return
+      }
+      
+      const ext = path.extname(fullPath)
+      const mimeType = MIME_TYPES[ext] || 'application/octet-stream'
+      
+      res.writeHead(200, {
+        'Content-Type': mimeType,
+        'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=31536000'
+      })
+      res.end(content)
+    })
+  })
+}
+
+const server = http.createServer((req, res) => {
+  // 生产模式：提供静态文件服务
+  if (fs.existsSync(DIST_DIR)) {
+    serveStaticFile(req, res)
+  } else {
+    // 开发模式：提示使用 Vite
+    res.writeHead(200, { 'Content-Type': 'text/plain' })
+    res.end('WebSocket server is running. Use Vite dev server for frontend in development mode.')
+  }
+})
 const wss = new WebSocket.Server({ server })
 
 const rooms = {}
