@@ -520,7 +520,7 @@ wss.on('connection', (ws) => {
 })
 
 function startServer(port = 3000) {
-  const listener = server.listen(port, () => logInfo('WS server listening', { port }))
+  const listener = server.listen(port, '0.0.0.0', () => logInfo('WS server listening on 0.0.0.0', { port }))
   
   // 定期检查并释放空房间
   const cleanupInterval = setInterval(() => {
