@@ -16,7 +16,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 ### 跨平台 (Node.js)
 ```bash
-node deploy.js wss://your-domain.com/ws
+node deploy.cjs wss://your-domain.com/ws
 ```
 
 ---
