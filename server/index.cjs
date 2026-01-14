@@ -171,16 +171,145 @@ function applyMove(room, playerSymbol, boardIndex, cellIndex) {
 }
 
 // AI utilities
-function addAIToRoom(room, humanSymbol) {
-  // AI takes the other symbol
-  const aiSymbol = humanSymbol === 'X' ? 'O' : 'X'
-  if (room.players[aiSymbol]) return false
-  room.players[aiSymbol] = 'AI'
-  room.ai = { symbol: aiSymbol, name: '机器人(AI)' }
-  if (!room.playerNames) room.playerNames = {}
-  room.playerNames[aiSymbol] = room.ai.name
-  return true
+const AI_MAX_DEPTH = 3   // 可调：2~4，越大越强但越慢
+
+function cloneState(state) {
+  return JSON.parse(JSON.stringify(state))
 }
+
+function getAvailableMoves(state) {
+  const moves = []
+  const allowed = state.nextAllowedBoard
+
+  const boards = state.boards
+  if (allowed !== -1) {
+    const b = boards[allowed]
+    if (!b.owner) {
+      b.cells.forEach((c, i) => {
+        if (!c) moves.push({ board: allowed, cell: i })
+      })
+    }
+  } else {
+    boards.forEach((b, bi) => {
+      if (b.owner) return
+      b.cells.forEach((c, ci) => {
+        if (!c) moves.push({ board: bi, cell: ci })
+      })
+    })
+  }
+  return moves
+}
+
+function evaluateSmallBoard(cells, ai, human) {
+  const winner = checkWinner(cells)
+  if (winner === ai) return 100
+  if (winner === human) return -100
+  return 0
+}
+
+function evaluateBigBoard(state, ai, human) {
+  const owners = state.boards.map(b => b.owner)
+  const winner = checkWinner(owners)
+  if (winner === ai) return 1000
+  if (winner === human) return -1000
+
+  // 启发式：控制的小棋盘数
+  let score = 0
+  state.boards.forEach(b => {
+    if (b.owner === ai) score += 10
+    if (b.owner === human) score -= 10
+  })
+  return score
+}
+
+function evaluateState(state, ai, human) {
+  let score = evaluateBigBoard(state, ai, human)
+  state.boards.forEach(b => {
+    if (!b.owner) {
+      score += evaluateSmallBoard(b.cells, ai, human)
+    }
+  })
+  return score
+}
+
+function simulateMove(state, player, move) {
+  const newState = cloneState(state)
+  const b = newState.boards[move.board]
+  b.cells[move.cell] = player
+
+  const smallWin = checkWinner(b.cells)
+  if (smallWin && smallWin !== 'DRAW') {
+    b.owner = smallWin
+    b.cells = b.cells.map(() => smallWin)
+  }
+
+  const next = newState.boards[move.cell]
+  if (!next || next.owner || next.cells.every(c => c)) {
+    newState.nextAllowedBoard = -1
+  } else {
+    newState.nextAllowedBoard = move.cell
+  }
+
+  newState.currentPlayer = player === 'X' ? 'O' : 'X'
+  return newState
+}
+
+function minimax(state, depth, alpha, beta, maximizing, ai, human) {
+  const winner = checkBigWinner(state.boards)
+  if (winner || depth === 0) {
+    return evaluateState(state, ai, human)
+  }
+
+  const moves = getAvailableMoves(state)
+
+  if (maximizing) {
+    let maxEval = -Infinity
+    for (const move of moves) {
+      const next = simulateMove(state, ai, move)
+      const evalScore = minimax(next, depth - 1, alpha, beta, false, ai, human)
+      maxEval = Math.max(maxEval, evalScore)
+      alpha = Math.max(alpha, evalScore)
+      if (beta <= alpha) break
+    }
+    return maxEval
+  } else {
+    let minEval = Infinity
+    for (const move of moves) {
+      const next = simulateMove(state, human, move)
+      const evalScore = minimax(next, depth - 1, alpha, beta, true, ai, human)
+      minEval = Math.min(minEval, evalScore)
+      beta = Math.min(beta, evalScore)
+      if (beta <= alpha) break
+    }
+    return minEval
+  }
+}
+
+function findBestMove(state, aiSymbol) {
+  const human = aiSymbol === 'X' ? 'O' : 'X'
+  let bestScore = -Infinity
+  let bestMove = null
+
+  const moves = getAvailableMoves(state)
+  for (const move of moves) {
+    const next = simulateMove(state, aiSymbol, move)
+    const score = minimax(
+      next,
+      AI_MAX_DEPTH - 1,
+      -Infinity,
+      Infinity,
+      false,
+      aiSymbol,
+      human
+    )
+    if (score > bestScore) {
+      bestScore = score
+      bestMove = move
+    }
+  }
+  return bestMove
+}
+
 
 function scheduleAIMove(room) {
   if (!room.ai) return
